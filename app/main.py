@@ -95,12 +95,23 @@ def get_sql(src_data, table_list, ad_group):
                     col_sql_stmt += f"CASE\n\tWHEN IS_MEMBER('{ad_group}') THEN {col_name}\n\tELSE 'NO ACCESS'\nEND AS {col_name},\n"
                 else:
                     col_sql_stmt += f"{col_name},\n"
+
+            his_table_name = table_name + "_HIS"
+            col_his_sql_stmt = col_sql_stmt
+            his_col_list = ["IS_ACTIVE", "EFF_ST_DT", "EFF_END_DT"]
+            for his_col in his_col_list:
+                col_his_sql_stmt += f"{his_col},\n"
+
             col_sql_stmt = col_sql_stmt.rstrip()
             col_sql_stmt = col_sql_stmt[:-1]
+            col_his_sql_stmt = col_his_sql_stmt.rstrip()
+            col_his_sql_stmt = col_his_sql_stmt[:-1]
 
             create_sql_stmt = f"CREATE OR REPLACE VIEW {view_schema_name}.{table_name}\nAS\nSELECT\n{col_sql_stmt}\nFROM\n{db_schema_name}.{table_name};"
-
             owner_sql_stmt = f"ALTER VIEW {view_schema_name}.{table_name} OWNER TO HIVE_OWNER;"
+
+            create_his_sql_stmt = f"CREATE OR REPLACE VIEW {view_schema_name}.{his_table_name}\nAS\nSELECT\n{col_his_sql_stmt}\nFROM\n{db_schema_name}.{his_table_name};"
+            owner_his_sql_stmt = f"ALTER VIEW {view_schema_name}.{his_table_name} OWNER TO HIVE_OWNER;"
 
             sql_stmt += create_sql_stmt
             sql_stmt += "\n"
@@ -109,6 +120,14 @@ def get_sql(src_data, table_list, ad_group):
 
             print("{} :: INFO :: Done for {}".format(datetime.now(), table_name))
             logging.info("Done for {}".format(table_name))
+
+            sql_stmt += create_his_sql_stmt
+            sql_stmt += "\n"
+            sql_stmt += owner_his_sql_stmt
+            sql_stmt += "\n\n"
+
+            print("{} :: INFO :: Done for {}".format(datetime.now(), his_table_name))
+            logging.info("Done for {}".format(his_table_name))
 
         except Exception as e:
             logging.error(e)
